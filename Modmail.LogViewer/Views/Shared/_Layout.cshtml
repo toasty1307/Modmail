@@ -1,0 +1,64 @@
+﻿@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>@ViewData["Title"] - Log Viewer</title>
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body>
+<header>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <img src="/favicon.ico" alt="" width="30" height="24" class="d-inline-block align-text-top">
+        Log Viewer
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" href="/commands"><i class="bi bi-card-list"></i> Commands</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/invite"> <i class="bi bi-plus-circle"></i> Invite</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/server"><i class="bi bi-discord"></i> Server</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/status"><i class="bi bi-activity"></i> Status</a>
+          </li>
+        </ul>
+        <div class="me-2" style="margin: auto;">
+          <a class="no-decoration" href="/manage">
+            <button class="btn btn-outline-primary me-2">Manage Servers</button>
+          </a>
+          <img src="@(User.Identity?.IsAuthenticated ?? false ? $"https://cdn.discordapp.com/avatars/{User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value}/{User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Hash)?.Value}" : "favicon.ico")" class="me-2" height="40px" width="40px" alt="..." style="visibility: @(User.Identity?.IsAuthenticated ?? false ? "visible" : "hidden"); border-radius: 50%">
+          <a class="no-decoration" href="/@(User.Identity?.IsAuthenticated ?? false ? "signout" : "signin")">
+            <button class="btn btn-outline-success my-2 my-sm-0">
+              @(User.Identity?.IsAuthenticated ?? false ? "Logout" : "Login")
+            </button>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="container">
+	<main role="main" class="pb-3">
+		@RenderBody()
+	</main>
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

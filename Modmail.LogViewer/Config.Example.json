@@ -1,0 +1,23 @@
+﻿{
+  "Bot": {
+    "Token": "token",
+    "Statuses": [
+      {
+        "ActivityType": 0,
+        "Message": "Milk",
+        "Url": "https://twitch.tv/danimilkman",
+        "StatusType": 0
+      },
+      {
+        "ActivityType": 0,
+        "Message": "Your mom",
+        "StatusType": 0
+      }
+    ],
+    "StatusChangeInterval": 5
+  },
+  "Server": {
+    "DiscordClientId": "906162583877333053",
+    "DiscordClientSecret": "client secret"
+  }
+}

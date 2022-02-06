@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.LogViewer", "Modmail.LogViewer\Modmail.LogViewer.csproj", "{41548BFB-D21B-48F6-B37F-161DDFA23432}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.Bot", "Modmail.Bot\Modmail.Bot.csproj", "{FD76F3E8-E0BA-4678-8DA3-0C067CA1F089}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.Data", "Modmail.Data\Modmail.Data.csproj", "{0F2D157D-8B1F-4A42-BC15-36995D0F811B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.Config", "Modmail.Config\Modmail.Config.csproj", "{95D07106-5494-47B3-AE24-35E5B941228C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41548BFB-D21B-48F6-B37F-161DDFA23432}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41548BFB-D21B-48F6-B37F-161DDFA23432}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41548BFB-D21B-48F6-B37F-161DDFA23432}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41548BFB-D21B-48F6-B37F-161DDFA23432}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD76F3E8-E0BA-4678-8DA3-0C067CA1F089}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD76F3E8-E0BA-4678-8DA3-0C067CA1F089}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD76F3E8-E0BA-4678-8DA3-0C067CA1F089}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD76F3E8-E0BA-4678-8DA3-0C067CA1F089}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F2D157D-8B1F-4A42-BC15-36995D0F811B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F2D157D-8B1F-4A42-BC15-36995D0F811B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F2D157D-8B1F-4A42-BC15-36995D0F811B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F2D157D-8B1F-4A42-BC15-36995D0F811B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95D07106-5494-47B3-AE24-35E5B941228C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95D07106-5494-47B3-AE24-35E5B941228C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95D07106-5494-47B3-AE24-35E5B941228C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95D07106-5494-47B3-AE24-35E5B941228C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
