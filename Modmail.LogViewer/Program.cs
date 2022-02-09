@@ -21,16 +21,20 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseSerilog();
-builder.Configuration.AddEnvironmentVariables()
+builder.Configuration
+    .AddEnvironmentVariables()
     .AddJsonFile("Config.json", true, true);
-builder.Services.AddDbContext<GuildContext>(ServiceLifetime.Singleton);
+
+var config = builder.Configuration.Get<Config>();
+
+builder.Services.AddDbContext<GuildContext>();
 builder.Services
     .AddControllersWithViews()
     .AddRazorRuntimeCompilation();
-builder.Services.AddHostedService(provider =>
+builder.Services.AddHostedService(_ =>
 {
-    var db = provider.GetService<GuildContext>() ?? throw new InvalidOperationException("Could not resolve GuildContext");
-    var section = builder.Configuration.Get<BotConfig>();
+    var db = new GuildContext();
+    var section = config.Bot;
     var botService = new BotService(section, db);
     return botService;
 });

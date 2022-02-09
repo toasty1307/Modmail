@@ -1,9 +1,57 @@
-﻿@model dynamic
+﻿@using System.Security.Claims
+@model dynamic
 
 @{
 	ViewBag.Title = "Manage";
 	Layout = "_Layout";
 }
 
-<h2 class="text-center">Servers</h2>
-<h3>aaa</h3>
+<h2 class="text-center text-white">Servers</h2>
+
+<div id="grid">
+	<h1 class="text-white">Loading...</h1>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+}
+
+.card:hover {
+    box-shadow: 0 32px 64px 0 rgba(0,0,0,0.2);
+}
+
+#grid{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 10px;
+}
+</style>
+
+<script>
+window.onload = function () {
+	fetch("/api/@User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value/guilds", {method: "GET",})
+		.then(x => x.json())
+		.then(x => {
+			let grid = document.getElementById("grid");
+			grid.innerHTML = "";
+			for (let i = 0; i < x.length; i++) {
+				let data = x[i];
+				grid.innerHTML += `<a class=\"no-decoration\" href=\"/manage/${data.id}\">` +
+                			            "<div class=\"card text-white bg-dark mb-3\" style=\"max-width: 18rem;\"> " + 
+                				            `<img src=\"data:image/png;base64,${data.icon}\" class=\"card-img-top\" alt=\"...\">` + 
+                				            "<div class=\"card-body\">" + 
+                					            `<h2 class=\"card-text\">${data.name}</h2>` +
+                				            "</div>" +
+                			            "</div>" +
+                		            "</a>";
+			}
+		})
+		.catch(() => document.getElementById("grid").innerHTML = "<h1 class=\"text-white\">idk something died</h1>");
+	}
+</script>

@@ -4,7 +4,6 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using DSharpPlus.SlashCommands.EventArgs;
-using Modmail.Bot.Extensions;
 using Serilog;
 
 namespace Modmail.Bot.BotExtensions;
@@ -14,6 +13,12 @@ public class EventsExtension : BaseExtension
     protected override void Setup(DiscordClient client)
     {
         Client = client;
+        client.GuildDownloadCompleted += ClientOnGuildDownloadCompleted;
+    }
+
+    private Task ClientOnGuildDownloadCompleted(DiscordClient sender, GuildDownloadCompletedEventArgs e)
+    {
+        return Task.CompletedTask;
     }
 
     public async Task SlashCommandErrored(SlashCommandsExtension sender, SlashCommandErrorEventArgs e)
@@ -44,11 +49,12 @@ public class EventsExtension : BaseExtension
         };
         try
         {
+            Log.Error(exception, "Error in {Command}", commandName);
             var original = await interaction.GetOriginalResponseAsync();
             if (original is null)
                 await interaction.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder().AsEphemeral(true).WithContent(reply));
             else
-                await interaction.FollowUpAsync(reply);
+                await interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent(reply));
         }
         catch
         {

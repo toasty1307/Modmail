@@ -3,21 +3,22 @@
     "Token": "token",
     "Statuses": [
       {
-        "ActivityType": 0,
-        "Message": "Milk",
+        "ActivityType": 3,
+        "Message": "milk",
         "Url": "https://twitch.tv/danimilkman",
-        "StatusType": 0
+        "StatusType": "online"
       },
       {
         "ActivityType": 0,
-        "Message": "Your mom",
-        "StatusType": 0
+        "Message": "your mom",
+        "StatusType": "online"
       }
     ],
-    "StatusChangeInterval": 5
+    "StatusChangeInterval": 5,
+    "InviteLink": "ee"
   },
   "Server": {
-    "DiscordClientId": "906162583877333053",
+    "DiscordClientId": "client id",
     "DiscordClientSecret": "client secret"
   }
 }

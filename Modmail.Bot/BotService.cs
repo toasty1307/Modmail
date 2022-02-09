@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.Design;
 using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ public class BotService : IHostedService
     private readonly GuildContext _guildContext;
     private readonly DiscordShardedClient _client;
     private readonly EventsExtension _eventsExtension;
+    private int _index;
 
     public BotService(BotConfig config, GuildContext guildContext)
     {
@@ -23,7 +25,7 @@ public class BotService : IHostedService
         _guildContext = guildContext;
         var discordConfig = new DiscordConfiguration
         {
-            Token = _config.Token,
+            Token = config.Token,
             MinimumLogLevel = LogLevel.Debug,
             Intents = DiscordIntents.All,
             LoggerFactory = new LoggerFactory().AddSerilog(),
@@ -34,9 +36,9 @@ public class BotService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _client.StartAsync();
         var slashCommandServices = new ServiceContainer();
         slashCommandServices.AddService(typeof(GuildContext), _guildContext);
+        slashCommandServices.AddService(typeof(BotConfig), _config);
         var slashCommandConfig = new SlashCommandsConfiguration
         {
             Services = slashCommandServices
@@ -53,15 +55,33 @@ public class BotService : IHostedService
             extension.SlashCommandErrored += _eventsExtension.SlashCommandErrored;
         }
 
+        await _client.StartAsync();
+
         foreach (var (_, client) in _client.ShardClients)
         {
             client.AddExtension(_eventsExtension);
-            client.AddExtension(new StatusExtension(_config.StatusChangeInterval, _config.Statuses));
+            client.AddExtension(new ModmailExtension());
         }
+
+        _client.GuildDownloadCompleted += async (_, _) => await CycleStatusAsync();
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _client.StopAsync();
+    }
+
+    public async Task CycleStatusAsync()
+    {
+        var status = _config.Statuses[_index];
+        _index++;
+        _index %= _config.Statuses.Length;
+        await _client.UpdateStatusAsync(new DiscordActivity(status.Message, status.ActivityType)
+        {
+            StreamUrl = status.Url
+        }, status.StatusType);
+#pragma warning disable CS4014
+        Task.Delay(_config.StatusChangeInterval * 1000).ContinueWith(async _ => await CycleStatusAsync());  // this is how i remake the timer thing but async
+#pragma warning restore CS4014
     }
 }
