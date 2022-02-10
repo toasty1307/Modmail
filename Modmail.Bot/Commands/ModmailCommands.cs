@@ -2,6 +2,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
+using Microsoft.EntityFrameworkCore;
 using Modmail.Bot.Extensions;
 using Modmail.Config;
 using Modmail.Data;
@@ -72,8 +73,157 @@ public class ModmailCommands : ApplicationCommandModule
             Database.Add(icon);
         Database.Add(configEntity);
         Database.Add(guildEntity);
-        await context.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Setup complete!"));
+        await context.EditResponseAsync("Setup complete!");
         await Database.SaveChangesAsync();
         Log.Information("Setup complete for {Guild}", context.Guild.Name);
+    }
+
+    [SlashCommand("contact", "contact a user", false)]
+    [SlashRequirePermissions(Permissions.ManageChannels)]
+    [SlashRequireGuild]
+    public async Task ContactCommand(InteractionContext ctx,
+        [Option("user", "the user to contact")] DiscordUser user)
+    {
+        await ctx.DeferAsync();
+
+        if (user.IsBot)
+        {
+            var res = await ctx.EditResponseAsync("r/therewasanattempt");
+            await res.Error();
+            return;
+        }
+
+        var member = await ctx.Guild.GetMemberAsync(user.Id);
+        if (member is null)
+        {
+            var res = await ctx.EditResponseAsync("User not in the guild");
+            await res.Error();
+            return;
+        }
+        
+        var guildEntity = Database.Guilds
+            .Include(x => x.Threads)
+            .Include(x => x.Config)
+            .FirstOrDefault(x => x.Id == ctx.Guild.Id);
+        
+        if (guildEntity is null)
+        {
+            var res = await ctx.EditResponseAsync("This server is not setup!");
+            await res.Error();
+            return;
+        }
+        
+        if (guildEntity.Threads.Any(x => x.RecipientId == user.Id))
+        {
+            var res = await ctx.EditResponseAsync("This user already has a thread!");
+            await res.Error();
+            return;
+        }
+        
+        var ext = ctx.Client.GetModmailExtension();
+        var logs = ctx.Guild.GetChannel(guildEntity.Config.LogChannelId);
+        var thread = await ext.CreateThread(logs, member, guildEntity.Config.ModThreadOpenMessage, false, ctx.Member);
+        
+        var avatar = await Database.FindAsync<FileEntity>(member.AvatarUrl);
+        var newAddition = avatar is null;
+        avatar ??= new FileEntity
+        {
+            Url = member.AvatarUrl,
+            Data = await new Uri(member.AvatarUrl).GetAvatar()
+        };
+        var threadEntity = new ThreadEntity
+        {
+            Open = true,
+            Created = DateTime.UtcNow,
+            GuildId = ctx.Guild.Id,
+            Id = thread.Id,
+            GuildEntity = guildEntity,
+            RecipientId = user.Id,
+            RecipientName = $"{member.Username}#{member.Discriminator}",
+            RecipientAvatar = avatar
+        };
+        
+        guildEntity.Threads.Add(threadEntity);
+        Database.Add(threadEntity);
+        if (newAddition)
+            Database.Add(avatar);
+        Database.Update(guildEntity);
+        await Database.SaveChangesAsync();
+        var res1 = await ctx.EditResponseAsync($"{Formatter.Mention(thread)} `#{thread.Name} ({thread.Id})`");
+        await res1.Success();
+    }
+    
+    [ContextMenu(ApplicationCommandType.UserContextMenu, "Contact"/*, false*/)] // TODO
+    [SlashRequireBotPermissions(Permissions.ManageChannels)]
+    [SlashRequireGuild]
+    public async Task ContactContext(ContextMenuContext ctx)
+    {
+        await ctx.DeferAsync();
+
+        var member = ctx.TargetMember;
+        if (member.IsBot)
+        {
+            var res = await ctx.EditResponseAsync("r/therewasanattempt");
+            await res.Error();
+            return;
+        }
+        
+        var guildEntity = Database.Guilds
+            .Include(x => x.Threads)
+            .Include(x => x.Config)
+            .FirstOrDefault(x => x.Id == ctx.Guild.Id);
+        
+        if (guildEntity is null)
+        {
+            var res = await ctx.EditResponseAsync("This server is not setup!");
+            await res.Error();
+            return;
+        }
+        
+        if (guildEntity.Threads.Any(x => x.RecipientId == member.Id))
+        {
+            var res = await ctx.EditResponseAsync("This user already has a thread!");
+            await res.Error();
+            return;
+        }
+        
+        var ext = ctx.Client.GetModmailExtension();
+        var logs = ctx.Guild.GetChannel(guildEntity.Config.LogChannelId);
+        var thread = await ext.CreateThread(logs, member, guildEntity.Config.ModThreadOpenMessage, false, ctx.Member);
+        
+        var avatar = await Database.FindAsync<FileEntity>(member.AvatarUrl);
+        var newAddition = avatar is null;
+        avatar ??= new FileEntity
+        {
+            Url = member.AvatarUrl,
+            Data = await new Uri(member.AvatarUrl).GetAvatar()
+        };
+        var threadEntity = new ThreadEntity
+        {
+            Open = true,
+            Created = DateTime.UtcNow,
+            GuildId = ctx.Guild.Id,
+            Id = thread.Id,
+            GuildEntity = guildEntity,
+            RecipientId = member.Id,
+            RecipientName = $"{member.Username}#{member.Discriminator}",
+            RecipientAvatar = avatar
+        };
+        
+        guildEntity.Threads.Add(threadEntity);
+        Database.Add(threadEntity);
+        if (newAddition)
+            Database.Add(avatar);
+        Database.Update(guildEntity);
+        await Database.SaveChangesAsync();
+        var res1 = await ctx.EditResponseAsync($"{Formatter.Mention(thread)} `#{thread.Name} ({thread.Id})`");
+        await res1.Success();
+    }
+    
+    [SlashCommand("selfcontact", "contact yourself", false)]
+    [SlashRequireGuild]
+    public Task SelfContactCommand(InteractionContext ctx)
+    {
+        return ContactCommand(ctx, ctx.Member);
     }
 }

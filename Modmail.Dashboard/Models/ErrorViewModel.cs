@@ -1,4 +1,4 @@
-namespace Modmail.LogViewer.Models;
+namespace Modmail.Dashboard.Models;
 
 public class ErrorViewModel
 {

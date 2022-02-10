@@ -1,0 +1,26 @@
+﻿{
+  "Bot": {
+    "Token": "OTQwNTg0NjQ1OTkxNDc3Mjc4.YgJhtg.pDMQ_jR8-2OoBt-RfhL_Adli4fE",
+    "Statuses": [
+      {
+        "ActivityType": 3,
+        "Message": "milk",
+        "Url": "https://twitch.tv/danimilkman",
+        "StatusType": "online"
+      },
+      {
+        "ActivityType": 0,
+        "Message": "your mom",
+        "StatusType": "online"
+      }
+    ],
+    "StatusChangeInterval": 30,
+    "InviteLink": "https://discord.com/api/oauth2/authorize?client_id=940584645991477278&permissions=8&scope=bot%20applications.commands",
+    "ServerInvite" : "https://discord.com",
+    "StatusUrl" : "https://modmailstatus.statuspage.io/"
+  },
+  "Server": {
+    "DiscordClientId": "940584645991477278",
+    "DiscordClientSecret": "gzt7w8Bf1cSxU0kPOOpK81DOZ4-f28sB"
+  }
+}

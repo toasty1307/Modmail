@@ -1,18 +1,17 @@
 ﻿using System.Net.Http.Headers;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Modmail.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Modmail.LogViewer.Controllers;
+namespace Modmail.Dashboard.Controllers;
 
 public record GuildData(string Name, string Icon, string Id);
 
 [ApiController]
-[Authorize(AuthenticationSchemes = "Discord")]
+[Route("api")]
 public class ApiController : ControllerBase
 {
     private GuildContext _database;
@@ -24,12 +23,14 @@ public class ApiController : ControllerBase
         _configuration = configuration;
     }
 
-    [HttpGet("api/{userId}/guilds")]
-    public async Task<List<GuildData>> UserGuilds([FromRoute] ulong userId)
+    [HttpGet("@me/guilds")]
+    public async Task<IActionResult> UserGuilds()
     {
+        if (!User.Identity?.IsAuthenticated ?? true)
+            return Unauthorized();
         var guildsString = User.Claims.FirstOrDefault(x => x.Type == "Guilds")?.Value ?? "";
         if (string.IsNullOrEmpty(guildsString))
-            return new List<GuildData>();
+            return new JsonResult(new List<GuildData>());
         var userGuildIds = guildsString.Split(';').Select(ulong.Parse);
         var commonGuilds = _database.Guilds
             .Include(x => x.Config)
@@ -54,6 +55,6 @@ public class ApiController : ControllerBase
                 list.Add(new GuildData(commonGuild.Name, Convert.ToBase64String(commonGuild.Icon.Data), commonGuild.Id.ToString()));
             }
         }
-        return list;
+        return new JsonResult(list);
     }
 }

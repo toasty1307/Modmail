@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.LogViewer", "Modmail.LogViewer\Modmail.LogViewer.csproj", "{41548BFB-D21B-48F6-B37F-161DDFA23432}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.LogViewer", "Modmail.Dashboard\Modmail.Dashboard.csproj", "{41548BFB-D21B-48F6-B37F-161DDFA23432}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modmail.Bot", "Modmail.Bot\Modmail.Bot.csproj", "{FD76F3E8-E0BA-4678-8DA3-0C067CA1F089}"
 EndProject

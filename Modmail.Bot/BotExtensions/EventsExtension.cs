@@ -4,6 +4,7 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using DSharpPlus.SlashCommands.EventArgs;
+using Modmail.Bot.Extensions;
 using Serilog;
 
 namespace Modmail.Bot.BotExtensions;
@@ -52,9 +53,16 @@ public class EventsExtension : BaseExtension
             Log.Error(exception, "Error in {Command}", commandName);
             var original = await interaction.GetOriginalResponseAsync();
             if (original is null)
+            {
                 await interaction.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder().AsEphemeral(true).WithContent(reply));
+                original = await interaction.GetOriginalResponseAsync();
+                await original.Error();
+            }
             else
+            {
                 await interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent(reply));
+                await original.Error();
+            }
         }
         catch
         {

@@ -5,33 +5,63 @@ namespace Modmail.Bot.Extensions;
 
 public static class ContextExtensions
 {
-    public static async Task FollowUpAsync(this InteractionContext context, string message)
+    public static Task FollowUpAsync(this InteractionContext context, string message)
     {
-        await context.FollowUpAsync(new DiscordFollowupMessageBuilder().WithContent(message));
+        return context.FollowUpAsync(new DiscordFollowupMessageBuilder().WithContent(message));
     }
     
-    public static async Task FollowUpAsync(this ContextMenuContext context, string message)
+    public static Task FollowUpAsync(this ContextMenuContext context, string message)
     {
-        await context.FollowUpAsync(new DiscordFollowupMessageBuilder().WithContent(message));
+        return context.FollowUpAsync(new DiscordFollowupMessageBuilder().WithContent(message));
     } 
     
-    public static async Task FollowUpAsync(this InteractionContext context, DiscordEmbed embed)
+    public static Task FollowUpAsync(this InteractionContext context, DiscordEmbed embed)
     {
-        await context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed));
+        return context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed));
     }
     
-    public static async Task FollowUpAsync(this ContextMenuContext context, DiscordEmbed embed)
+    public static Task FollowUpAsync(this ContextMenuContext context, DiscordEmbed embed)
     {
-        await context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed));
+        return context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed));
     }
-    public static async Task FollowUpAsync(this InteractionContext context, string content, DiscordEmbed embed)
+    public static Task FollowUpAsync(this InteractionContext context, string content, DiscordEmbed embed)
     {
-        await context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed).WithContent(content));
+        return context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed).WithContent(content));
     }
     
-    public static async Task FollowUpAsync(this ContextMenuContext context, string content, DiscordEmbed embed)
+    public static Task FollowUpAsync(this ContextMenuContext context, string content, DiscordEmbed embed) 
     {
-        await context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed).WithContent(content));
+        return context.FollowUpAsync(new DiscordFollowupMessageBuilder().AddEmbed(embed).WithContent(content));
+    }
+    
+    public static Task<DiscordMessage> EditResponseAsync(this InteractionContext interaction, string content)
+    {
+        return interaction.EditResponseAsync(new DiscordWebhookBuilder().WithContent(content));
+    }
+
+    public static Task<DiscordMessage> EditResponseAsync(this InteractionContext interaction, DiscordEmbed embed)
+    {
+        return interaction.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+    }
+    
+    public static Task<DiscordMessage> EditResponseAsync(this InteractionContext interaction, string content, DiscordEmbed embed)
+    {
+        return interaction.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).WithContent(content));
+    }
+    
+    public static Task<DiscordMessage> EditResponseAsync(this ContextMenuContext interaction, string content)
+    {
+        return interaction.EditResponseAsync(new DiscordWebhookBuilder().WithContent(content));
+    }
+
+    public static Task<DiscordMessage> EditResponseAsync(this ContextMenuContext interaction, DiscordEmbed embed)
+    {
+        return interaction.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+    }
+    
+    public static Task<DiscordMessage> EditResponseAsync(this ContextMenuContext interaction, string content, DiscordEmbed embed)
+    {
+        return interaction.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).WithContent(content));
     }
 }
 

@@ -2,13 +2,20 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Modmail.LogViewer.Models;
+using Modmail.Dashboard.Models;
 
-namespace Modmail.LogViewer.Controllers;
+namespace Modmail.Dashboard.Controllers;
 
 [Route("/")]
 public class HomeController : Controller
 {
+    public IConfiguration _configuration;
+
+    public HomeController(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
     [Route("/")]
     public IActionResult Index()
     {
@@ -25,7 +32,7 @@ public class HomeController : Controller
     [Route("status")]
     public IActionResult Status()
     {
-        return Redirect("https://modmailstatus.statuspage.io/");
+        return Redirect(_configuration["Bot:StatusUrl"]);
     }
 
     [Route("forbidden")]
@@ -37,8 +44,7 @@ public class HomeController : Controller
     [Route("invite")]
     public IActionResult Invite()
     {
-        return Redirect(
-            "https://discord.com/api/oauth2/authorize?client_id=906162583877333053&permissions=8&scope=bot%20applications.commands");
+        return Redirect(_configuration["Bot:InviteLink"]);
     }
 
     [Route("commands")]
@@ -50,8 +56,7 @@ public class HomeController : Controller
     [Route("server")]
     public IActionResult Server()
     {
-        return Redirect(
-            "https://discord.gg/tKkGQ6mjzP");
+        return Redirect(_configuration["Bot:ServerInvite"]);
     }
     
     [Route("signout")]

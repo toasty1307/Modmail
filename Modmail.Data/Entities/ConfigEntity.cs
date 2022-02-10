@@ -11,4 +11,6 @@ public class ConfigEntity
     public ulong CategoryChannelId { get; set; }
     public ulong LogAccessRoleId { get; set; }
     public bool MoveChannelsToCategory { get; set; } = true;
+    public string ModThreadOpenMessage { get; set; } = null!;
+    public string UserThreadOpenMessage { get; set; } = null!;
 }
