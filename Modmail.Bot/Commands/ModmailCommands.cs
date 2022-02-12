@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Modmail.Bot.Extensions;
 using Modmail.Config;
 using Modmail.Data;
@@ -14,8 +15,13 @@ namespace Modmail.Bot.Commands;
 public class ModmailCommands : ApplicationCommandModule
 {
     // set by DI
-    public GuildContext Database { get; set; } = null!;
     public BotConfig Config { get; set; } = null!;
+    private readonly ILogger<ModmailCommands> _logger;
+
+    public ModmailCommands()
+    {
+        _logger = new Logger<ModmailCommands>(new LoggerFactory().AddSerilog());
+    }
 
     [SlashCommand("setup", "setup the server")]
     [SlashRequireBotPermissions(Permissions.ManageChannels | Permissions.ManageRoles)]
@@ -23,9 +29,10 @@ public class ModmailCommands : ApplicationCommandModule
     [SlashRequireGuild]
     public async Task SetupCommand(InteractionContext context)
     {
-        Log.Information("Setting up modmail for {Guild}", context.Guild.Name);
+        await using var db = new GuildContext();
+        _logger.LogInformation("Setting up modmail for {Guild}", context.Guild.Name);
         await context.CreateResponseAsync("Setting up modmail...");
-        var guildEntity = await Database.FindAsync<GuildEntity>(context.Guild.Id);
+        var guildEntity = await db.FindAsync<GuildEntity>(context.Guild.Id);
         if (guildEntity is not null)
         {
             await context.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Already setup!"));
@@ -45,7 +52,7 @@ public class ModmailCommands : ApplicationCommandModule
             await s.CopyToAsync(ms);
             return ms.ToArray();
         };
-        var icon = Database.Find<FileEntity>(context.Guild.IconUrl ?? "https://cdn.discordapp.com/embed/avatars/0.png");
+        var icon = db.Find<FileEntity>(context.Guild.IconUrl ?? "https://cdn.discordapp.com/embed/avatars/0.png");
         var iconExists = icon is not null;
         icon ??= new FileEntity
         {
@@ -70,12 +77,12 @@ public class ModmailCommands : ApplicationCommandModule
         };
         configEntity.GuildEntity = guildEntity;
         if (!iconExists)
-            Database.Add(icon);
-        Database.Add(configEntity);
-        Database.Add(guildEntity);
+            db.Add(icon);
+        db.Add(configEntity);
+        db.Add(guildEntity);
         await context.EditResponseAsync("Setup complete!");
-        await Database.SaveChangesAsync();
-        Log.Information("Setup complete for {Guild}", context.Guild.Name);
+        await db.SaveChangesAsync();
+        _logger.LogInformation("Setup complete for {Guild}", context.Guild.Name);
     }
 
     [SlashCommand("contact", "contact a user", false)]
@@ -101,19 +108,20 @@ public class ModmailCommands : ApplicationCommandModule
             return;
         }
         
-        var guildEntity = Database.Guilds
+        await using var db = new GuildContext();
+        var guildEntity = db.Guilds
             .Include(x => x.Threads)
             .Include(x => x.Config)
             .FirstOrDefault(x => x.Id == ctx.Guild.Id);
         
-        if (guildEntity is null)
+        if (guildEntity is null || !guildEntity.Setup)
         {
             var res = await ctx.EditResponseAsync("This server is not setup!");
             await res.Error();
             return;
         }
         
-        if (guildEntity.Threads.Any(x => x.RecipientId == user.Id))
+        if (guildEntity.Threads.Any(x => x.RecipientId == user.Id && x.Open))
         {
             var res = await ctx.EditResponseAsync("This user already has a thread!");
             await res.Error();
@@ -122,14 +130,14 @@ public class ModmailCommands : ApplicationCommandModule
         
         var ext = ctx.Client.GetModmailExtension();
         var logs = ctx.Guild.GetChannel(guildEntity.Config.LogChannelId);
-        var thread = await ext.CreateThread(logs, member, guildEntity.Config.ModThreadOpenMessage, false, ctx.Member);
+        var thread = await ext.CreateThread(logs, member, guildEntity.Config.ModThreadOpenMessage!, false, ctx.Member);
         
-        var avatar = await Database.FindAsync<FileEntity>(member.AvatarUrl);
+        var avatar = await db.FindAsync<FileEntity>(member.AvatarUrl);
         var newAddition = avatar is null;
         avatar ??= new FileEntity
         {
             Url = member.AvatarUrl,
-            Data = await new Uri(member.AvatarUrl).GetAvatar()
+            Data = await new Uri(member.AvatarUrl).GetBytes()
         };
         var threadEntity = new ThreadEntity
         {
@@ -144,11 +152,11 @@ public class ModmailCommands : ApplicationCommandModule
         };
         
         guildEntity.Threads.Add(threadEntity);
-        Database.Add(threadEntity);
+        db.Add(threadEntity);
         if (newAddition)
-            Database.Add(avatar);
-        Database.Update(guildEntity);
-        await Database.SaveChangesAsync();
+            db.Add(avatar);
+        db.Update(guildEntity);
+        await db.SaveChangesAsync();
         var res1 = await ctx.EditResponseAsync($"{Formatter.Mention(thread)} `#{thread.Name} ({thread.Id})`");
         await res1.Success();
     }
@@ -168,19 +176,20 @@ public class ModmailCommands : ApplicationCommandModule
             return;
         }
         
-        var guildEntity = Database.Guilds
+        await using var db = new GuildContext();
+        var guildEntity = db.Guilds
             .Include(x => x.Threads)
             .Include(x => x.Config)
             .FirstOrDefault(x => x.Id == ctx.Guild.Id);
         
-        if (guildEntity is null)
+        if (guildEntity is null || !guildEntity.Setup)
         {
             var res = await ctx.EditResponseAsync("This server is not setup!");
             await res.Error();
             return;
         }
         
-        if (guildEntity.Threads.Any(x => x.RecipientId == member.Id))
+        if (guildEntity.Threads.Any(x => x.RecipientId == member.Id && x.Open))
         {
             var res = await ctx.EditResponseAsync("This user already has a thread!");
             await res.Error();
@@ -189,14 +198,14 @@ public class ModmailCommands : ApplicationCommandModule
         
         var ext = ctx.Client.GetModmailExtension();
         var logs = ctx.Guild.GetChannel(guildEntity.Config.LogChannelId);
-        var thread = await ext.CreateThread(logs, member, guildEntity.Config.ModThreadOpenMessage, false, ctx.Member);
+        var thread = await ext.CreateThread(logs, member, guildEntity.Config.ModThreadOpenMessage!, false, ctx.Member);
         
-        var avatar = await Database.FindAsync<FileEntity>(member.AvatarUrl);
+        var avatar = await db.FindAsync<FileEntity>(member.AvatarUrl);
         var newAddition = avatar is null;
         avatar ??= new FileEntity
         {
             Url = member.AvatarUrl,
-            Data = await new Uri(member.AvatarUrl).GetAvatar()
+            Data = await new Uri(member.AvatarUrl).GetBytes()
         };
         var threadEntity = new ThreadEntity
         {
@@ -211,11 +220,11 @@ public class ModmailCommands : ApplicationCommandModule
         };
         
         guildEntity.Threads.Add(threadEntity);
-        Database.Add(threadEntity);
+        db.Add(threadEntity);
         if (newAddition)
-            Database.Add(avatar);
-        Database.Update(guildEntity);
-        await Database.SaveChangesAsync();
+            db.Add(avatar);
+        db.Update(guildEntity);
+        await db.SaveChangesAsync();
         var res1 = await ctx.EditResponseAsync($"{Formatter.Mention(thread)} `#{thread.Name} ({thread.Id})`");
         await res1.Success();
     }

@@ -4,7 +4,8 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Modmail.Bot.BotExtensions;
+using Modmail.Bot.Extensions;
+using Modmail.Bot.Stuff;
 using Modmail.Config;
 using Modmail.Data;
 using Serilog;
@@ -14,31 +15,48 @@ namespace Modmail.Bot;
 public class BotService : IHostedService
 {
     private readonly BotConfig _config;
-    private readonly GuildContext _guildContext;
     private readonly DiscordShardedClient _client;
-    private readonly EventsExtension _eventsExtension;
+    private readonly Events _events;
+    private readonly ILogger<BotService> _logger;
     private int _index;
 
-    public BotService(BotConfig config, GuildContext guildContext)
+    public BotService(BotConfig config)
     {
+        _logger = new Logger<BotService>(new LoggerFactory().AddSerilog());
+        _logger.LogInformation("Initializing Bot");
         _config = config;
-        _guildContext = guildContext;
         var discordConfig = new DiscordConfiguration
         {
             Token = config.Token,
-            MinimumLogLevel = LogLevel.Debug,
+            MinimumLogLevel = LogLevel.Trace,
             Intents = DiscordIntents.All,
             LoggerFactory = new LoggerFactory().AddSerilog(),
         };
         _client = new DiscordShardedClient(discordConfig);
-        _eventsExtension = new EventsExtension();
+        _events = new Events(new Logger<Events>(new LoggerFactory().AddSerilog()));
+        _client.GuildDownloadCompleted += _events.OnGuildDownloadCompleted;
+        _client.ChannelDeleted += _events.OnChannelDeleted;
+        
+        // wonder if this will compile the model and help with the time of the first query
+        _ = new GuildContext().Files.FirstOrDefault();
+        // it did work
+
+        var e = new GuildContext();
+        var time = DateTime.Now - new DateTime(1970, 1, 1);
+        _ = e.Guilds.ToList();
+        _logger.LogInformation("Time taken to fetch guild from database and not ram: {Time}", (DateTime.Now - new DateTime(1970, 1, 1)).TotalMilliseconds - time.TotalMilliseconds);
+        
+        time = DateTime.Now - new DateTime(1970, 1, 1);
+        _ = e.Guilds.ToList();
+        _logger.LogInformation("Time taken to fetch guild from ram: {Time}", (DateTime.Now - new DateTime(1970, 1, 1)).TotalMilliseconds - time.TotalMilliseconds);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Bot starting");
         var slashCommandServices = new ServiceContainer();
-        slashCommandServices.AddService(typeof(GuildContext), _guildContext);
-        slashCommandServices.AddService(typeof(BotConfig), _config);
+        slashCommandServices
+            .AddService(_config);
         var slashCommandConfig = new SlashCommandsConfiguration
         {
             Services = slashCommandServices
@@ -51,23 +69,25 @@ public class BotService : IHostedService
             , 841890589640359946
 #endif
             );
-            extension.ContextMenuErrored += _eventsExtension.ContextMenuErrored;
-            extension.SlashCommandErrored += _eventsExtension.SlashCommandErrored;
+            extension.ContextMenuErrored += _events.ContextMenuErrored;
+            extension.SlashCommandErrored += _events.SlashCommandErrored;
         }
 
         await _client.StartAsync();
 
         foreach (var (_, client) in _client.ShardClients)
         {
-            client.AddExtension(_eventsExtension);
-            client.AddExtension(new ModmailExtension());
+            client.AddExtension(new ModmailExtension(new Logger<ModmailExtension>(new LoggerFactory().AddSerilog())));
         }
 
         _client.GuildDownloadCompleted += async (_, _) => await CycleStatusAsync();
+        
+        _logger.LogInformation("Bot started");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Stopping bot");
         await _client.StopAsync();
     }
 
@@ -81,7 +101,8 @@ public class BotService : IHostedService
             StreamUrl = status.Url
         }, status.StatusType);
 #pragma warning disable CS4014
-        Task.Delay(_config.StatusChangeInterval * 1000).ContinueWith(async _ => await CycleStatusAsync());  // this is how i remake the timer thing but async
+        // this is how i remake the timer thing but async
+        Task.Delay(_config.StatusChangeInterval * 1000).ContinueWith(async _ => await CycleStatusAsync());
 #pragma warning restore CS4014
     }
 }

@@ -1,59 +1,66 @@
-﻿using System.Net.Http.Headers;
-using System.Security.Claims;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Modmail.Dashboard.Extensions;
 using Modmail.Data;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Modmail.Dashboard.Controllers;
 
 public record GuildData(string Name, string Icon, string Id);
+public record LogData(string Name, string Icon, string Id, double Time);
 
 [ApiController]
 [Route("api")]
 public class ApiController : ControllerBase
 {
     private GuildContext _database;
-    private readonly IConfiguration _configuration;
 
-    public ApiController(GuildContext database, IConfiguration configuration)
+    public ApiController(GuildContext database)
     {
         _database = database;
-        _configuration = configuration;
     }
 
     [HttpGet("@me/guilds")]
     public async Task<IActionResult> UserGuilds()
     {
-        if (!User.Identity?.IsAuthenticated ?? true)
+        if (!User.Identity!.IsAuthenticated)
             return Unauthorized();
-        var guildsString = User.Claims.FirstOrDefault(x => x.Type == "Guilds")?.Value ?? "";
-        if (string.IsNullOrEmpty(guildsString))
-            return new JsonResult(new List<GuildData>());
-        var userGuildIds = guildsString.Split(';').Select(ulong.Parse);
-        var commonGuilds = _database.Guilds
-            .Include(x => x.Config)
+        
+        var userGuilds = User.GetGuilds();
+        var guilds = _database.Guilds
             .Include(x => x.Icon)
-            .Where(x => userGuildIds.Contains(x.Id))
-            .ToArray();
-        var id = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)!.Value;
-        var client = new HttpClient();
-        var list = new List<GuildData>();
-        foreach (var commonGuild in commonGuilds)
+            .Include(x => x.Config)
+            .Where(x => userGuilds.Contains(x.Id)).ToList();
+        var guildsWithAccess = await User.GetGuildsWithAccess(guilds);
+        var list = guildsWithAccess.Select(guildEntity => new GuildData(guildEntity.Name, Convert.ToBase64String(guildEntity.Icon.Data), guildEntity.Id.ToString())).ToList();
+        return new JsonResult(list);
+    }
+
+    [HttpGet("@me/guilds/{guildIdString}/logs")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GuildsLogs([FromRoute] string guildIdString)
+    {
+        if (!User.Identity!.IsAuthenticated)
+            return Unauthorized();
+        
+        if (!ulong.TryParse(guildIdString, out var id))
+            return Forbid();
+        
+        var guildEntity = _database.Guilds
+            .Include(x => x.Config)
+            .FirstOrDefault(x => x.Id == id);
+        var hasAccess = await User.CheckManageServerPermission(guildEntity);
+        if (!hasAccess)
+            return Forbid();
+
+        var threads = _database.Threads
+            .Include(x => x.RecipientAvatar)
+            .Where(x => x.GuildId == id);
+        var list = new List<LogData>();
+        foreach (var threadEntity in threads)
         {
-            var requestMessage = new HttpRequestMessage(HttpMethod.Get,
-                $"https://discord.com/api/guilds/{commonGuild.Id}/members/{id}");
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bot", _configuration["Bot:Token"]);
-            var response = await client.SendAsync(requestMessage);
-            if (!response.IsSuccessStatusCode)
-                continue;
-            var roles =
-                ((JArray)JsonConvert.DeserializeObject<Dictionary<string, object>>(await response.Content.ReadAsStringAsync())!["roles"]).ToArray();
-            if (roles.Contains(commonGuild.Config.LogAccessRoleId.ToString()))
-            {
-                list.Add(new GuildData(commonGuild.Name, Convert.ToBase64String(commonGuild.Icon.Data), commonGuild.Id.ToString()));
-            }
+            var time = threadEntity.Created.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+            list.Add(new LogData(threadEntity.RecipientName, Convert.ToBase64String(threadEntity.RecipientAvatar.Data), threadEntity.Id.ToString(), time));
         }
         return new JsonResult(list);
     }

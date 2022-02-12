@@ -4,28 +4,43 @@
 	ViewBag.Title = ViewData["GuildName"]!;
 	Layout = "_Layout";
 }
-<ul class="nav flex-column position-absolute">
-  <li class="nav-item">
-    <a class="nav-link no-decoration text-white" aria-current="page" href="/manage/@ViewData["GuildId"]"><h2><i class="bi bi-house-fill"></i> Home</h2></a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link no-decoration text-white" aria-current="page" href="/manage/@ViewData["GuildId"]/config"><h2><i class="bi bi-gear-fill"></i> Config</h2></a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link no-decoration text-white" aria-current="page" href="/manage/@ViewData["GuildId"]/logs"><h2><i class="bi bi-card-list"></i> Logs</h2></a>
-  </li>
-</ul>
 
-<div style="left: 50%;position: absolute">
-  @RenderBody()
+<div class="d-flex flex-row bd-highlight w-100 h-100">
+  <div style="flex: 200px">
+    <ul class="nav sidebar flex-column h-100">
+      <li class="nav-item">
+        <a class="nav-link sidebar-item no-decoration text-white" aria-current="page" href="/manage/@ViewData["GuildId"]">
+          <h2>
+            <i class="bi bi-house-fill"></i> Home
+          </h2>
+          </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link sidebar-item no-decoration text-white" aria-current="page" href="/manage/@ViewData["GuildId"]/config">
+          <h2>
+            <i class="bi bi-gear-fill"></i> Config
+          </h2>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link sidebar-item no-decoration text-white" aria-current="page" href="/manage/@ViewData["GuildId"]/logs">
+          <h2>
+            <i class="bi bi-card-list"></i> Logs
+          </h2>
+        </a>
+      </li>
+    </ul>
+  </div>
+  <div class="w-100">
+    @RenderBody()
+  </div>
 </div>
 
 <style>
-  ul {
-    height: 87%;
+  .sidebar {
     background-color: #212529;
   }
-  li:hover {
+  .sidebar-item:hover {
     background-color: #282c34;
   }
 </style>

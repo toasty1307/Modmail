@@ -33,9 +33,8 @@ builder.Services
     .AddRazorRuntimeCompilation();
 builder.Services.AddHostedService(_ =>
 {
-    var db = new GuildContext();
     var section = config.Bot;
-    var botService = new BotService(section, db);
+    var botService = new BotService(section);
     return botService;
 });
 builder.Services.AddAuthentication(options =>
@@ -57,11 +56,14 @@ builder.Services.AddAuthentication(options =>
         options.ClientId = builder.Configuration["Server:DiscordClientId"];
         options.ClientSecret = builder.Configuration["Server:DiscordClientSecret"];
         options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Name, "username");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Surname, "discriminator"); // idk what else to use
         options.ClaimActions.MapJsonKey(ClaimTypes.Hash, "avatar");
         options.ForwardSignOut = "Discord";
         options.AccessDeniedPath = "/forbidden";
         options.Scope.Add("identify");
         options.Scope.Add("guilds");
+        options.Scope.Add("guilds.members.read");
         options.Events = new OAuthEvents
         {
             OnCreatingTicket = async context =>
@@ -69,7 +71,7 @@ builder.Services.AddAuthentication(options =>
                 var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
-                
+                context.Identity!.AddClaim(new Claim("Token", context.AccessToken!));
                 var response = await context.Backchannel.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.HttpContext.RequestAborted);
                 response.EnsureSuccessStatusCode();
 

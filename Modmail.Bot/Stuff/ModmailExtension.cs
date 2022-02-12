@@ -1,12 +1,22 @@
-﻿using DSharpPlus;
+﻿using System.Security.Cryptography;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Modmail.Bot.Extensions;
+using Modmail.Data.Entities;
 
-namespace Modmail.Bot.BotExtensions;
+namespace Modmail.Bot.Stuff;
 
 public class ModmailExtension : BaseExtension
 {
+    private readonly ILogger<ModmailExtension> _logger;
+
+    public ModmailExtension(ILogger<ModmailExtension> logger)
+    {
+        _logger = logger;
+    }
+    
     protected override void Setup(DiscordClient client)
     {
         Client = client;
@@ -14,7 +24,7 @@ public class ModmailExtension : BaseExtension
 
     public async Task<DiscordChannel> CreateCategory(DiscordGuild guild, IEnumerable<DiscordOverwrite> overwrites)
     {
-        Log.Information("Creating category channel in {Name}", guild.Name);
+        _logger.LogInformation("Creating category channel in {Name}", guild.Name);
         var overwriteBuilders = new List<DiscordOverwriteBuilder>();
         foreach (var overwrite in overwrites)
         {
@@ -29,7 +39,7 @@ public class ModmailExtension : BaseExtension
 
     public async Task<DiscordChannel> CreateLog(DiscordChannel categoryChannel)
     {
-        Log.Information("Creating log channel in {Name}", categoryChannel.Guild.Name);
+        _logger.LogInformation("Creating log channel in {Name}", categoryChannel.Guild.Name);
         var logs = await categoryChannel.Guild.CreateChannelAsync("Logs", ChannelType.Text, categoryChannel);
         await SendLogEmbed(logs);
         return logs;
@@ -38,7 +48,7 @@ public class ModmailExtension : BaseExtension
         public async Task<DiscordChannel> CreateThread(DiscordChannel logs, DiscordMember member, string openMessage,
         bool dm = true, DiscordMember mod = null!)
     {
-        Log.Information("Creating thread for {Username} in {Name}", member.Username, logs.Guild.Name);
+        _logger.LogInformation("Creating thread for {Username} in {Name}", member.Username, logs.Guild.Name);
         var channel = await logs.Guild
             .CreateChannelAsync($"{member.Username}-{member.Discriminator}", ChannelType.Text, logs.Parent);
         await channel.CreateWebhookAsync("Modmail");
@@ -54,7 +64,7 @@ public class ModmailExtension : BaseExtension
         {
             await member.SendMessageAsync(new DiscordEmbedBuilder
             {
-                Title = "Thread Created",
+                Title = $"Thread Created in {channel.Guild.Name}",
                 Description = openMessage,
                 Color = new DiscordColor("2F3136")
             });
@@ -86,9 +96,57 @@ public class ModmailExtension : BaseExtension
         {
             Title = "Logs Channel",
             Description =
-                "This is not the channel for all the modmail logs, you can change this using the `/config logchannel` command.",
+                "This is now the channel for modmail logs, you can change this using the `/config logchannel` command.",
             Color = new DiscordColor(0x2F3136)
         };
         await logs.SendMessageAsync(embed);
+    }
+
+    public async Task ThreadDeleted(DiscordChannel logs, ThreadEntity thread, string reason, string guildName = null!)
+    {
+        var member = await logs.Guild.GetMemberAsync(thread.RecipientId);
+        
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+        if (logs is not null)
+        {
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Thread Deleted",
+                Description = $"Thread for {Formatter.Mention(member)} `{member.Username}#{member.Discriminator} ({member.Id})` (Channel Id: `{thread.Id}`) was deleted. Reason: {reason}",
+                Color = new DiscordColor("2F3136")
+            };
+            await logs.SendMessageAsync(embed);
+        }
+        try
+        {
+            await member.SendMessageAsync(new DiscordEmbedBuilder
+            {
+                Title = "Thread Deleted",
+                Description = $"Your thread in was deleted in {logs?.Guild?.Name ?? guildName}. Replying will create a new thread",
+                Color = new DiscordColor("2F3136")
+            });
+        }
+        catch (UnauthorizedException)
+        {
+            _logger.LogWarning("Couldn't DM {Username}", member.Username);
+        }
+    }
+
+    public async Task SendWebhookMessage(DiscordChannel channel, string message,
+        IEnumerable<DiscordAttachment> attachments, bool anon = false, string avatarUrl = null!, string username = null!)
+    {
+        var webhook = await channel.GetModmailWebhook();
+        var attachmentsDictionary = new Dictionary<string, Stream>();
+        foreach (var discordAttachment in attachments.Where(x => x != null!))
+        {
+            var key = discordAttachment.FileName;
+            var stream = await new Uri(discordAttachment.Url).GetStream();
+            attachmentsDictionary.Add(key, stream);
+        }
+        await webhook.ExecuteAsync(new DiscordWebhookBuilder()
+            .WithContent(message)
+            .AddFiles(attachmentsDictionary)
+            .WithAvatarUrl(anon ? Client.CurrentUser.AvatarUrl : avatarUrl)
+            .WithUsername(anon ? "Anonymous" : username));
     }
 }

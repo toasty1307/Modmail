@@ -12,7 +12,6 @@ namespace Modmail.Bot.Commands;
 public class ConfigCommands : ApplicationCommandModule
 {
     // set by DI
-    public GuildContext Database { get; set; } = null!;
     public BotConfig Config { get; set; } = null!;
     
     [SlashCommand("logchannel", "gets or sets the log channel for this server")]
@@ -20,7 +19,8 @@ public class ConfigCommands : ApplicationCommandModule
         [Option("channel", "the new log channel")] DiscordChannel channel = null!)
     {
         await context.DeferAsync();
-        var config = await Database.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
+        var db = new GuildContext();
+        var config = await db.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
         if (channel == null!)
         {
             await context.EditResponseAsync($"The log channel is currently set to <#{config.LogChannelId}>");
@@ -39,8 +39,8 @@ public class ConfigCommands : ApplicationCommandModule
             await channel.ModifyPositionAsync(0, parentId: config.CategoryChannelId);
         var ext = context.Client.GetModmailExtension();
         await ext.SendLogEmbed(channel);
-        Database.Update(config);
-        await Database.SaveChangesAsync();
+        db.Update(config);
+        await db.SaveChangesAsync();
     }
     
     [SlashCommand("categorychannel", "gets or sets the category channel for this server")]
@@ -48,7 +48,8 @@ public class ConfigCommands : ApplicationCommandModule
         [Option("channel", "the new category channel")] DiscordChannel channel = null!)
     {
         await context.DeferAsync();
-        var config = await Database.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
+        var db = new GuildContext();
+        var config = await db.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
         if (channel == null!)
         {
             await context.EditResponseAsync($"The category channel is currently set to <#{config.CategoryChannelId}>");
@@ -63,8 +64,8 @@ public class ConfigCommands : ApplicationCommandModule
 
         config.CategoryChannelId = channel.Id; 
         await context.EditResponseAsync($"Changed the category channel to <#{config.CategoryChannelId}>");
-        Database.Update(config);
-        await Database.SaveChangesAsync();
+        db.Update(config);
+        await db.SaveChangesAsync();
     }
     
     [SlashCommand("logrole", "gets or sets the log viewer role for this server")]
@@ -72,7 +73,8 @@ public class ConfigCommands : ApplicationCommandModule
         [Option("role", "the new log viewer role")] DiscordRole role = null!)
     {
         await context.DeferAsync();
-        var config = await Database.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
+        var db = new GuildContext();
+        var config = await db.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
         if (role == null!)
         {
             await context.EditResponseAsync(new DiscordWebhookBuilder()
@@ -91,8 +93,8 @@ public class ConfigCommands : ApplicationCommandModule
         await context.EditResponseAsync(new DiscordWebhookBuilder()
             .WithContent($"Changed the log access role to <@&{config.LogAccessRoleId}>")
             .AddMentions(Array.Empty<IMention>()));
-        Database.Update(config);
-        await Database.SaveChangesAsync();
+        db.Update(config);
+        await db.SaveChangesAsync();
     }
     
     [SlashCommand("modopenmessage", "gets or sets the modopenmessage for this server")]
@@ -100,7 +102,8 @@ public class ConfigCommands : ApplicationCommandModule
         [Option("message", "the new mod thread open message")] string message = null!)
     {
         await context.DeferAsync();
-        var config = await Database.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
+        var db = new GuildContext();
+        var config = await db.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
         if (message == null!)
         {
             await context.EditResponseAsync(new DiscordWebhookBuilder()
@@ -119,8 +122,8 @@ public class ConfigCommands : ApplicationCommandModule
         await context.EditResponseAsync(new DiscordWebhookBuilder()
             .WithContent($"Changed the mod open thread message to `{message}`")
             .AddMentions(Array.Empty<IMention>()));
-        Database.Update(config);
-        await Database.SaveChangesAsync();
+        db.Update(config);
+        await db.SaveChangesAsync();
     }
     
     [SlashCommand("useropenmessage", "gets or sets the useropenmessage for this server")]
@@ -128,7 +131,8 @@ public class ConfigCommands : ApplicationCommandModule
         [Option("message", "the new user thread open message")] string message = null!)
     {
         await context.DeferAsync();
-        var config = await Database.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
+        var db = new GuildContext();
+        var config = await db.FindAsync<ConfigEntity>(context.Guild.Id) ?? throw new InvalidOperationException("Config not found"); // should never throw
         if (message == null!)
         {
             await context.EditResponseAsync(new DiscordWebhookBuilder()
@@ -147,8 +151,8 @@ public class ConfigCommands : ApplicationCommandModule
         await context.EditResponseAsync(new DiscordWebhookBuilder()
             .WithContent($"Changed the mod open thread message to `{message}`")
             .AddMentions(Array.Empty<IMention>()));
-        Database.Update(config);
-        await Database.SaveChangesAsync();
+        db.Update(config);
+        await db.SaveChangesAsync();
     }
 
     [SlashCommand("movechannels", "gets or sets if the channels should move to the category channel")]
@@ -157,7 +161,8 @@ public class ConfigCommands : ApplicationCommandModule
         bool move = false)
     {
         await context.DeferAsync();
-        var config = await Database.FindAsync<ConfigEntity>(context.Guild.Id) ??
+        var db = new GuildContext();
+        var config = await db.FindAsync<ConfigEntity>(context.Guild.Id) ??
                      throw new InvalidOperationException("Config not found"); // should never throw
 
         if (!context.Member.Permissions.HasFlag(Permissions.Administrator))
@@ -171,7 +176,7 @@ public class ConfigCommands : ApplicationCommandModule
             move 
             ? "oki i will move the channels to the category uwu" 
             : "oki i wont move the channels to the category channel owo");
-        Database.Update(config);
-        await Database.SaveChangesAsync();
+        db.Update(config);
+        await db.SaveChangesAsync();
     }
 }
